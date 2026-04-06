@@ -18,11 +18,17 @@ Item {
   readonly property string terminalCommand: pluginApi?.pluginSettings?.terminalCommand || ""
   readonly property string sessionsFilePath: pluginApi?.pluginSettings?.sessionsFile || defaultSessionsFile
   readonly property bool showNotifications: pluginApi?.pluginSettings?.showNotifications ?? true
+  readonly property string autoStartMode: pluginApi?.pluginSettings?.autoStartMode || "Connect Existing"
 
   property bool agentRunning: false
   property bool loadingKeys: false
   property var loadedKeys: []
   property var sessions: []
+
+  property string sshVersion: "Loading..."
+  property string sshAddVersion: "Loading..."
+  property string sshKeygenVersion: "Loading..."
+  property bool isStartupPhase: true
 
   readonly property string resolvedSessionsFilePath: resolvePath(sessionsFilePath)
 
@@ -60,6 +66,32 @@ Item {
     refreshLoadedKeys()
   }
 
+  function getUtilityVersions() {
+    runProcess(sshVersionProc, ["sh", "-lc", "ssh -V 2>&1"])
+    runProcess(sshAddVersionProc, ["sh", "-lc", "ssh-add -V 2>&1"])
+    runProcess(sshKeygenVersionProc, ["sh", "-lc", "ssh-keygen -V 2>&1"])
+  }
+
+  function performStartupInitialization() {
+    // Initial state check
+    refreshState()
+    
+    // Set up a timer to verify after a short delay and start if needed
+    startupCheckTimer.start()
+  }
+
+  function handleStartupCheck() {
+    if (autoStartMode === "Create New") {
+      startAgent(true)
+    } else if (autoStartMode === "Connect Existing") {
+      if (!agentRunning) {
+        startAgent(false)
+      }
+    }
+    // Mark startup phase complete with extended delay to ensure all startup processes finish
+    Qt.callLater(() => { isStartupPhase = false }, 500)
+  }
+
   function checkAgentRunning() {
     runProcess(checkAgentProc, ["sh", "-lc", "test -S " + shellQuote(agentSocketPath)])
   }
@@ -93,7 +125,9 @@ Item {
         loadedKeys = []
       } else {
         loadedKeys = []
-        maybeNotifyError("SSH Agent", text.trim())
+        if (!isStartupPhase) {
+          maybeNotifyError("SSH Agent", text.trim())
+        }
       }
       return
     }
@@ -267,13 +301,22 @@ Item {
   }
 
   Component.onCompleted: {
-    refreshState()
+    performStartupInitialization()
     loadSessionsFromDisk()
+    getUtilityVersions()
   }
 
   onSettingsWatcherChanged: {
     refreshState()
     loadSessionsFromDisk()
+  }
+
+  Timer {
+    id: startupCheckTimer
+    interval: 500
+    running: false
+    repeat: false
+    onTriggered: handleStartupCheck()
   }
 
   IpcHandler {
@@ -317,7 +360,9 @@ Item {
         }
       } catch (e) {
         root.sessions = []
-        root.maybeNotifyError("Saved Sessions", "Invalid JSON in sessions file")
+        if (!root.isStartupPhase) {
+          root.maybeNotifyError("Saved Sessions", "Invalid JSON in sessions file")
+        }
       }
     }
   }
@@ -354,9 +399,16 @@ Item {
 
     onExited: exitCode => {
       if (exitCode === 0) {
-        root.maybeNotifyInfo("SSH Agent", "Agent started")
+        if (!root.isStartupPhase) {
+          root.maybeNotifyInfo("SSH Agent", "Agent started")
+        }
       } else {
-        root.maybeNotifyError("SSH Agent", String(stderr.text || stdout.text).trim() || "Failed to start ssh-agent")
+        if (!root.isStartupPhase) {
+          var errorMsg = String(stderr.text || stdout.text).trim()
+          if (errorMsg) {
+            root.maybeNotifyError("SSH Agent", errorMsg || "Failed to start ssh-agent")
+          }
+        }
       }
       root.refreshState()
     }
@@ -370,7 +422,9 @@ Item {
 
     onExited: exitCode => {
       if (exitCode === 0) {
-        root.maybeNotifyInfo("SSH Agent", "Agent stopped")
+        if (!root.isStartupPhase) {
+          root.maybeNotifyInfo("SSH Agent", "Agent stopped")
+        }
       }
       root.refreshState()
     }
@@ -452,6 +506,42 @@ Item {
       if (exitCode !== 0) {
         root.maybeNotifyError("Launch Failed", "No supported terminal found")
       }
+    }
+  }
+
+  Process {
+    id: sshVersionProc
+    running: false
+    stdout: StdioCollector {}
+    stderr: StdioCollector {}
+
+    onExited: exitCode => {
+      var output = String(stdout.text || stderr.text || "").trim()
+      root.sshVersion = output || "Unknown"
+    }
+  }
+
+  Process {
+    id: sshAddVersionProc
+    running: false
+    stdout: StdioCollector {}
+    stderr: StdioCollector {}
+
+    onExited: exitCode => {
+      var output = String(stdout.text || stderr.text || "").trim()
+      root.sshAddVersion = output || "Unknown"
+    }
+  }
+
+  Process {
+    id: sshKeygenVersionProc
+    running: false
+    stdout: StdioCollector {}
+    stderr: StdioCollector {}
+
+    onExited: exitCode => {
+      var output = String(stdout.text || stderr.text || "").trim()
+      root.sshKeygenVersion = output || "Unknown"
     }
   }
 }

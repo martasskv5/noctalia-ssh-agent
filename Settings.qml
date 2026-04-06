@@ -66,10 +66,93 @@ ColumnLayout {
     onToggled: checked => root.editShowNotifications = checked
   }
 
+  NComboBox {
+    Layout.fillWidth: true
+    label: "Startup Behavior"
+    description: "What to do when Noctalia starts"
+    model: ["Create New", "Connect Existing", "Ask Each Time"]
+    currentIndex: {
+      var modes = ["Create New", "Connect Existing", "Ask Each Time"]
+      return modes.indexOf(pluginApi?.pluginSettings?.autoStartMode || "Connect Existing")
+    }
+    onActivated: index => {
+      var modes = ["Create New", "Connect Existing", "Ask Each Time"]
+      pluginApi.pluginSettings.autoStartMode = modes[index] || "Connect Existing"
+    }
+  }
+
   NButton {
     text: "Save Settings"
     icon: "device-floppy"
     onClicked: root.saveSettings()
+  }
+
+  Rectangle {
+    Layout.fillWidth: true
+    Layout.preferredHeight: syscInfo.implicitHeight + Style.marginM * 2
+    color: Color.mSurfaceVariant
+    radius: Style.radiusL
+    border.color: Style.capsuleBorderColor
+    border.width: Style.capsuleBorderWidth
+
+    ColumnLayout {
+      id: syscInfo
+      anchors.fill: parent
+      anchors.margins: Style.marginM
+      spacing: Style.marginS
+
+      NText {
+        text: "System Information"
+        font.pointSize: Style.fontSizeM
+        font.weight: Font.Bold
+        color: Color.mOnSurface
+      }
+
+      RowLayout {
+        spacing: Style.marginM
+        NText {
+          text: "ssh:"
+          font.weight: Font.Medium
+          color: Color.mOnSurfaceVariant
+          Layout.preferredWidth: 80
+        }
+        NText {
+          text: pluginApi?.mainInstance?.sshVersion || "Loading..."
+          color: Color.mOnSurface
+          Layout.fillWidth: true
+        }
+      }
+
+      RowLayout {
+        spacing: Style.marginM
+        NText {
+          text: "ssh-add:"
+          font.weight: Font.Medium
+          color: Color.mOnSurfaceVariant
+          Layout.preferredWidth: 80
+        }
+        NText {
+          text: pluginApi?.mainInstance?.sshAddVersion || "Loading..."
+          color: Color.mOnSurface
+          Layout.fillWidth: true
+        }
+      }
+
+      RowLayout {
+        spacing: Style.marginM
+        NText {
+          text: "ssh-keygen:"
+          font.weight: Font.Medium
+          color: Color.mOnSurfaceVariant
+          Layout.preferredWidth: 80
+        }
+        NText {
+          text: pluginApi?.mainInstance?.sshKeygenVersion || "Loading..."
+          color: Color.mOnSurface
+          Layout.fillWidth: true
+        }
+      }
+    }
   }
 
   Item { Layout.fillHeight: true }

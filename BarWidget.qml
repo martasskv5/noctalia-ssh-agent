@@ -4,6 +4,7 @@ import Quickshell
 import qs.Commons
 import qs.Services.UI
 import qs.Widgets
+import QtQuick.Controls
 
 Item {
   id: root
@@ -41,10 +42,25 @@ Item {
         color: agentRunning ? Color.mPrimary : Color.mOnSurfaceVariant
       }
 
+    //   NText {
+    //     text: keyCount > 0 ? keyCount.toString() : ""
+    //     color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
+    //     pointSize: Style.fontSizeS
+    //     visible: keyCount > 0
+    //   }
+
       NText {
-        text: keyCount > 0 ? ("SSH " + keyCount) : "SSH"
-        color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
-        pointSize: Style.fontSizeS
+        text: mouseArea.containsMouse ? (agentRunning ? "Running" : "Stopped") + (keyCount > 0 ? " - Keys: " + keyCount : "") : ""
+        color: Color.mOnHover
+        pointSize: Style.fontSizeXS
+        visible: mouseArea.containsMouse
+        opacity: mouseArea.containsMouse ? 1 : 0
+        Behavior on opacity {
+          PropertyAnimation {
+            duration: 250
+            easing.type: Easing.InOutQuad
+          }
+        }
       }
     }
   }

@@ -1,0 +1,6 @@
+{
+  "socketPath": "/tmp/ssh-agent-martinko.sock",
+  "sessionsFile": "~/.pageant-tray-v2-sessions.json",
+  "terminalCommand": "kitty",
+  "showNotifications": true
+}

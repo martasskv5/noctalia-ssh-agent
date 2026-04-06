@@ -135,9 +135,9 @@ Item {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     readonly property real popupAvailWidth: Math.max(320, root.width - Style.marginL * 2)
-    readonly property real popupAvailHeight: Math.max(320, root.height - Style.marginL * 2)
+    readonly property real popupAvailHeight: Math.max(320, root.height - Style.marginM)
     width: Math.min(popupAvailWidth, 680 * Style.uiScaleRatio)
-    height: Math.min(popupAvailHeight, 820 * Style.uiScaleRatio)
+    height: popupAvailHeight
     x: Math.max(Style.marginL, (root.width - width) / 2)
     y: Math.max(Style.marginL, (root.height - height) / 2)
     padding: 0
@@ -292,18 +292,23 @@ Item {
           RowLayout {
             spacing: Style.marginS
 
-            NIcon {
-              icon: "key"
-              pointSize: Style.fontSizeXL
-              color: Color.mPrimary
-            }
+            ColumnLayout {
+              spacing: 0
+              NIcon {
+                id: agentIcon
+                icon: "key"
+                pointSize: Style.fontSizeXL
+                color: Color.mPrimary
+              }
+              ToolTip.text: "SSH Agent\nStatus: " + (mainInstance?.agentRunning ? "Running" : "Stopped") + "\nLoaded Keys: " + (mainInstance?.loadedKeys?.length || 0)
+              ToolTip.visible: iconHover.containsMouse
+              ToolTip.delay: 200
 
-            NText {
-              text: "SSH Agent"
-              font.pointSize: Style.fontSizeL
-              font.weight: Font.Medium
-              color: Color.mOnSurface
-              Layout.fillWidth: true
+              MouseArea {
+                id: iconHover
+                anchors.fill: parent
+                hoverEnabled: true
+              }
             }
 
             Rectangle {
@@ -537,6 +542,7 @@ Item {
         Layout.fillWidth: true
         text: "Add Key"
         icon: "plus"
+        enabled: mainInstance?.agentRunning ?? false
         onClicked: keyPicker.open()
       }
 

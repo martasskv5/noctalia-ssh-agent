@@ -21,7 +21,8 @@
       "socketPath": "",
       "sessionsFile": "~/.pageant-tray-v2-sessions.json",
       "terminalCommand": "",
-      "showNotifications": true
+      "showNotifications": true,
+      "autoStartMode": "Connect Existing"
     }
   }
 }
