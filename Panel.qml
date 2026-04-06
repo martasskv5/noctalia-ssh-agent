@@ -26,7 +26,8 @@ Item {
   property string editKeyPath: ""
   property string editExtraArgs: ""
   property string selectedSessionName: ""
-  property bool sessionEditorVisible: false
+  property var selectedSession: null
+  property var selectedSessionDelegate: null
 
   function clearSessionForm() {
     editName = ""
@@ -40,7 +41,6 @@ Item {
 
   function loadSessionIntoForm(session) {
     if (!session) return
-    sessionEditorVisible = true
     selectedSessionName = session.name || ""
     editName = session.name || ""
     editHost = session.host || ""
@@ -48,6 +48,7 @@ Item {
     editPort = session.port || "22"
     editKeyPath = session.key_path || ""
     editExtraArgs = session.extra_args || ""
+    sessionEditorPopup.open()
   }
 
   function saveSessionFromForm() {
@@ -59,17 +60,60 @@ Item {
       key_path: editKeyPath,
       extra_args: editExtraArgs
     })
-    sessionEditorVisible = false
+    sessionEditorPopup.close()
   }
 
   function openNewSessionEditor() {
     clearSessionForm()
-    sessionEditorVisible = true
+    sessionEditorPopup.open()
   }
 
   function closeSessionEditor() {
-    sessionEditorVisible = false
+    sessionEditorPopup.close()
     clearSessionForm()
+  }
+
+  function openSessionContextMenu(session, delegate, mouseX, mouseY) {
+    selectedSession = session
+    selectedSessionDelegate = delegate
+    sessionContextMenu.openAtItem(delegate, mouseX, mouseY)
+  }
+
+  NContextMenu {
+    id: sessionContextMenu
+
+    model: [
+      {
+        label: "Connect",
+        action: "connect",
+        icon: "terminal"
+      },
+      {
+        label: "Edit",
+        action: "edit",
+        icon: "edit"
+      },
+      {
+        label: "Delete",
+        action: "delete",
+        icon: "trash"
+      }
+    ]
+
+    onTriggered: action => {
+      if (!root.selectedSession) return
+
+      if (action === "connect") {
+        mainInstance?.launchSession(root.selectedSession)
+      } else if (action === "edit") {
+        root.loadSessionIntoForm(root.selectedSession)
+      } else if (action === "delete") {
+        mainInstance?.deleteSession(root.selectedSession.name)
+        if (root.selectedSessionName === root.selectedSession.name) {
+          root.clearSessionForm()
+        }
+      }
+    }
   }
 
   NFilePicker {
@@ -81,6 +125,143 @@ Item {
     onAccepted: paths => {
       if (paths.length > 0) {
         mainInstance?.addKey(paths[0])
+      }
+    }
+  }
+
+  Popup {
+    id: sessionEditorPopup
+    modal: true
+    focus: true
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+    readonly property real popupAvailWidth: Math.max(320, root.width - Style.marginL * 2)
+    readonly property real popupAvailHeight: Math.max(320, root.height - Style.marginL * 2)
+    width: Math.min(popupAvailWidth, 680 * Style.uiScaleRatio)
+    height: Math.min(popupAvailHeight, 820 * Style.uiScaleRatio)
+    x: Math.max(Style.marginL, (root.width - width) / 2)
+    y: Math.max(Style.marginL, (root.height - height) / 2)
+    padding: 0
+
+    background: Rectangle {
+      color: Color.mSurfaceVariant
+      radius: Style.radiusL
+      border.color: Style.capsuleBorderColor
+      border.width: Style.capsuleBorderWidth
+    }
+
+    contentItem: Flickable {
+      id: editorFlick
+      clip: true
+      contentWidth: width
+      contentHeight: editorContent.implicitHeight + Style.marginM * 2
+      boundsBehavior: Flickable.StopAtBounds
+
+      ScrollBar.vertical: ScrollBar {
+        policy: ScrollBar.AsNeeded
+      }
+
+      ColumnLayout {
+        id: editorContent
+        x: Style.marginM
+        y: Style.marginM
+        width: editorFlick.width - Style.marginM * 2
+        spacing: Style.marginS
+
+        NText {
+          text: root.selectedSessionName ? "Edit Session" : "New Session"
+          font.pointSize: Style.fontSizeM
+          font.weight: Font.Medium
+        }
+
+        NTextInput {
+          Layout.fillWidth: true
+          label: "Session Name"
+          text: root.editName
+          onTextChanged: root.editName = text
+        }
+
+        NTextInput {
+          Layout.fillWidth: true
+          label: "Host"
+          text: root.editHost
+          onTextChanged: root.editHost = text
+        }
+
+        NTextInput {
+          Layout.fillWidth: true
+          label: "User"
+          text: root.editUser
+          onTextChanged: root.editUser = text
+        }
+
+        NTextInput {
+          Layout.fillWidth: true
+          label: "Port"
+          text: root.editPort
+          onTextChanged: root.editPort = text
+        }
+
+        NTextInput {
+          Layout.fillWidth: true
+          label: "Key Path"
+          text: root.editKeyPath
+          onTextChanged: root.editKeyPath = text
+        }
+
+        NTextInput {
+          Layout.fillWidth: true
+          label: "Extra SSH Args"
+          text: root.editExtraArgs
+          onTextChanged: root.editExtraArgs = text
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Style.marginS
+
+          NButton {
+            Layout.fillWidth: true
+            text: root.selectedSessionName ? "Update Session" : "Save Session"
+            icon: "device-floppy"
+            onClicked: root.saveSessionFromForm()
+          }
+
+          NButton {
+            Layout.fillWidth: true
+            text: "Connect"
+            icon: "terminal"
+            enabled: root.editHost.length > 0
+            onClicked: {
+              mainInstance?.launchSession({
+                name: root.editName,
+                host: root.editHost,
+                user: root.editUser,
+                port: root.editPort,
+                key_path: root.editKeyPath,
+                extra_args: root.editExtraArgs
+              })
+            }
+          }
+        }
+
+        NButton {
+          Layout.fillWidth: true
+          text: "Clear"
+          icon: "eraser"
+          onClicked: root.clearSessionForm()
+        }
+
+        NButton {
+          Layout.fillWidth: true
+          text: "Close"
+          icon: "x"
+          onClicked: root.closeSessionEditor()
+        }
+
+        Item {
+          Layout.fillWidth: true
+          Layout.preferredHeight: Style.marginM
+        }
       }
     }
   }
@@ -160,15 +341,22 @@ Item {
         border.color: Style.capsuleBorderColor
         border.width: Style.capsuleBorderWidth
 
-        ScrollView {
+        Flickable {
+          id: bodyFlick
           anchors.fill: parent
+          anchors.margins: Style.marginM
           clip: true
+          contentWidth: width
+          contentHeight: scrollContent.implicitHeight
+          boundsBehavior: Flickable.StopAtBounds
+
+          ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+          }
 
           ColumnLayout {
             id: scrollContent
-            width: panelContainer.width - Style.marginM * 4
-            x: Style.marginM
-            y: Style.marginM
+            width: bodyFlick.width
             spacing: Style.marginL
 
             ColumnLayout {
@@ -296,7 +484,12 @@ Item {
 
                     MouseArea {
                       anchors.fill: parent
-                      onClicked: root.loadSessionIntoForm(modelData)
+                      onClicked: root.selectedSessionName = modelData.name || ""
+                    }
+
+                    TapHandler {
+                      acceptedButtons: Qt.RightButton
+                      onTapped: root.openSessionContextMenu(modelData, parent, point.position.x, point.position.y)
                     }
 
                     RowLayout {
@@ -308,30 +501,20 @@ Item {
                       NText {
                         text: modelData.name || ""
                         font.weight: Font.Medium
-                        Layout.preferredWidth: Style.baseWidgetSize * 2.8
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 2
+                        Layout.minimumWidth: Style.baseWidgetSize * 2.2
                         elide: Text.ElideRight
                       }
 
                       NText {
-                        text: (modelData.user ? modelData.user + "@" : "") + (modelData.host || "") + ":" + (modelData.port || "22")
+                        text: modelData.host || ""
                         color: Color.mOnSurfaceVariant
+                        horizontalAlignment: Text.AlignRight
                         Layout.fillWidth: true
-                        elide: Text.ElideRight
-                      }
-
-                      NIconButton {
-                        icon: "terminal"
-                        tooltipText: "Connect"
-                        onClicked: mainInstance?.launchSession(modelData)
-                      }
-
-                      NIconButton {
-                        icon: "trash"
-                        tooltipText: "Delete"
-                        onClicked: {
-                          mainInstance?.deleteSession(modelData.name)
-                          if (root.selectedSessionName === modelData.name) root.clearSessionForm()
-                        }
+                        Layout.preferredWidth: 3
+                        Layout.minimumWidth: Style.baseWidgetSize * 2.6
+                        elide: Text.ElideMiddle
                       }
                     }
                   }
@@ -342,118 +525,6 @@ Item {
                   visible: (mainInstance?.sessions?.length || 0) === 0
                   text: "No saved sessions"
                   color: Color.mOnSurfaceVariant
-                }
-              }
-
-              Rectangle {
-                visible: root.sessionEditorVisible
-                Layout.fillWidth: true
-                radius: Style.radiusM
-                color: Style.capsuleColor
-                border.color: Style.capsuleBorderColor
-                border.width: Style.capsuleBorderWidth
-
-                ColumnLayout {
-                  anchors.fill: parent
-                  anchors.margins: Style.marginS
-                  spacing: Style.marginS
-
-                  NText {
-                    text: root.selectedSessionName ? "Edit Session" : "New Session"
-                    font.pointSize: Style.fontSizeM
-                    font.weight: Font.Medium
-                  }
-
-                  ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: Style.marginS
-
-                    NTextInput {
-                      Layout.fillWidth: true
-                      label: "Session Name"
-                      text: root.editName
-                      onTextChanged: root.editName = text
-                    }
-
-                    NTextInput {
-                      Layout.fillWidth: true
-                      label: "Host"
-                      text: root.editHost
-                      onTextChanged: root.editHost = text
-                    }
-
-                    NTextInput {
-                      Layout.fillWidth: true
-                      label: "User"
-                      text: root.editUser
-                      onTextChanged: root.editUser = text
-                    }
-
-                    NTextInput {
-                      Layout.fillWidth: true
-                      label: "Port"
-                      text: root.editPort
-                      onTextChanged: root.editPort = text
-                    }
-
-                    NTextInput {
-                      Layout.fillWidth: true
-                      label: "Key Path"
-                      text: root.editKeyPath
-                      onTextChanged: root.editKeyPath = text
-                    }
-
-                    NTextInput {
-                      Layout.fillWidth: true
-                      label: "Extra SSH Args"
-                      text: root.editExtraArgs
-                      onTextChanged: root.editExtraArgs = text
-                    }
-                  }
-
-                  RowLayout {
-                    Layout.fillWidth: true
-                    spacing: Style.marginS
-
-                    NButton {
-                      Layout.fillWidth: true
-                      text: root.selectedSessionName ? "Update Session" : "Save Session"
-                      icon: "device-floppy"
-                      onClicked: root.saveSessionFromForm()
-                    }
-
-                    NButton {
-                      Layout.fillWidth: true
-                      text: "Connect"
-                      icon: "terminal"
-                      enabled: root.editHost.length > 0
-                      onClicked: {
-                        mainInstance?.launchSession({
-                          name: root.editName,
-                          host: root.editHost,
-                          user: root.editUser,
-                          port: root.editPort,
-                          key_path: root.editKeyPath,
-                          extra_args: root.editExtraArgs
-                        })
-                      }
-                    }
-                  }
-
-                  NButton {
-                    Layout.fillWidth: true
-                    text: "Clear"
-                    icon: "eraser"
-                    onClicked: root.clearSessionForm()
-                  }
-
-                  NButton {
-                    Layout.fillWidth: true
-                    text: "Close Editor"
-                    icon: "x"
-                    onClicked: root.closeSessionEditor()
-                  }
-
                 }
               }
 
