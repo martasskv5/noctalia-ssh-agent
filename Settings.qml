@@ -13,9 +13,10 @@ ColumnLayout {
   readonly property string defaultSocketPath: "/tmp/ssh-agent-" + (Quickshell.env("USER") || "default") + ".sock"
 
   property string editSocketPath: pluginApi?.pluginSettings?.socketPath || pluginApi?.manifest?.metadata?.defaultSettings?.socketPath || root.defaultSocketPath
-  property string editSessionsFile: pluginApi?.pluginSettings?.sessionsFile || pluginApi?.manifest?.metadata?.defaultSettings?.sessionsFile || "~/.pageant-tray-v2-sessions.json"
+  property string editSessionsFile: pluginApi?.pluginSettings?.sessionsFile || pluginApi?.manifest?.metadata?.defaultSettings?.sessionsFile || "~/.ssh/sessions.json"
   property string editTerminalCommand: pluginApi?.pluginSettings?.terminalCommand || pluginApi?.manifest?.metadata?.defaultSettings?.terminalCommand || ""
   property bool editShowNotifications: pluginApi?.pluginSettings?.showNotifications ?? pluginApi?.manifest?.metadata?.defaultSettings?.showNotifications ?? true
+  property string editAutoStartMode: pluginApi?.pluginSettings?.autoStartMode || pluginApi?.manifest?.metadata?.defaultSettings?.autoStartMode || "Connect Existing"
 
   function saveSettings() {
     if (!pluginApi) return
@@ -24,6 +25,7 @@ ColumnLayout {
     pluginApi.pluginSettings.sessionsFile = root.editSessionsFile
     pluginApi.pluginSettings.terminalCommand = root.editTerminalCommand
     pluginApi.pluginSettings.showNotifications = root.editShowNotifications
+    pluginApi.pluginSettings.autoStartMode = root.editAutoStartMode
     pluginApi.saveSettings()
   }
 
@@ -70,15 +72,13 @@ ColumnLayout {
     Layout.fillWidth: true
     label: "Startup Behavior"
     description: "What to do when Noctalia starts"
-    model: ["Create New", "Connect Existing", "Ask Each Time"]
-    currentIndex: {
-      var modes = ["Create New", "Connect Existing", "Ask Each Time"]
-      return modes.indexOf(pluginApi?.pluginSettings?.autoStartMode || "Connect Existing")
-    }
-    onActivated: index => {
-      var modes = ["Create New", "Connect Existing", "Ask Each Time"]
-      pluginApi.pluginSettings.autoStartMode = modes[index] || "Connect Existing"
-    }
+    model: [
+      { key: "Create New", name: "Create New" },
+      { key: "Connect Existing", name: "Connect Existing" },
+      { key: "Ask Each Time", name: "Ask Each Time" }
+    ]
+    currentKey: root.editAutoStartMode
+    onSelected: key => root.editAutoStartMode = key || "Connect Existing"
   }
 
   NButton {
@@ -118,36 +118,6 @@ ColumnLayout {
         }
         NText {
           text: pluginApi?.mainInstance?.sshVersion || "Loading..."
-          color: Color.mOnSurface
-          Layout.fillWidth: true
-        }
-      }
-
-      RowLayout {
-        spacing: Style.marginM
-        NText {
-          text: "ssh-add:"
-          font.weight: Font.Medium
-          color: Color.mOnSurfaceVariant
-          Layout.preferredWidth: 80
-        }
-        NText {
-          text: pluginApi?.mainInstance?.sshAddVersion || "Loading..."
-          color: Color.mOnSurface
-          Layout.fillWidth: true
-        }
-      }
-
-      RowLayout {
-        spacing: Style.marginM
-        NText {
-          text: "ssh-keygen:"
-          font.weight: Font.Medium
-          color: Color.mOnSurfaceVariant
-          Layout.preferredWidth: 80
-        }
-        NText {
-          text: pluginApi?.mainInstance?.sshKeygenVersion || "Loading..."
           color: Color.mOnSurface
           Layout.fillWidth: true
         }

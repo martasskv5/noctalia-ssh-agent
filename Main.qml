@@ -67,9 +67,23 @@ Item {
   }
 
   function getUtilityVersions() {
-    runProcess(sshVersionProc, ["sh", "-lc", "ssh -V 2>&1"])
-    runProcess(sshAddVersionProc, ["sh", "-lc", "ssh-add -V 2>&1"])
-    runProcess(sshKeygenVersionProc, ["sh", "-lc", "ssh-keygen -V 2>&1"])
+    runProcess(sshVersionProc, ["sh", "-lc", "if command -v ssh >/dev/null 2>&1; then ssh -V 2>&1; else echo 'Not installed'; fi"])
+  }
+
+  function extractVersionLine(outputText) {
+    var lines = String(outputText || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim()
+      if (!line) continue
+
+      var lower = line.toLowerCase()
+      if (lower.indexOf("usage:") === 0) continue
+      if (lower.indexOf("unknown option") === 0) continue
+      if (lower.indexOf("option requires an argument") === 0) continue
+
+      return line
+    }
+    return "Unknown"
   }
 
   function performStartupInitialization() {
@@ -516,8 +530,8 @@ Item {
     stderr: StdioCollector {}
 
     onExited: exitCode => {
-      var output = String(stdout.text || stderr.text || "").trim()
-      root.sshVersion = output || "Unknown"
+      var output = String(stdout.text || stderr.text || "")
+      root.sshVersion = root.extractVersionLine(output)
     }
   }
 
@@ -528,8 +542,8 @@ Item {
     stderr: StdioCollector {}
 
     onExited: exitCode => {
-      var output = String(stdout.text || stderr.text || "").trim()
-      root.sshAddVersion = output || "Unknown"
+      var output = String(stdout.text || stderr.text || "")
+      root.sshAddVersion = root.extractVersionLine(output)
     }
   }
 
@@ -540,8 +554,8 @@ Item {
     stderr: StdioCollector {}
 
     onExited: exitCode => {
-      var output = String(stdout.text || stderr.text || "").trim()
-      root.sshKeygenVersion = output || "Unknown"
+      var output = String(stdout.text || stderr.text || "")
+      root.sshKeygenVersion = root.extractVersionLine(output)
     }
   }
 }
