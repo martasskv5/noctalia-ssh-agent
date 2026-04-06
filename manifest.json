@@ -8,12 +8,20 @@
   "repository": "https://github.com/martasskv5/noctalia-ssh-agent",
   "description": "A plugin that integrates SSH agent functionality into Noctalia, allowing users to manage their SSH keys and connections directly from the Noctalia interface.",
   "entryPoints": {
-    "barWidget": "BarWidget.qml"
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml",
+    "settings": "Settings.qml"
   },
   "dependencies": {
     "plugins": []
   },
   "metadata": {
-    "defaultSettings": {}
+    "defaultSettings": {
+      "socketPath": "",
+      "sessionsFile": "~/.pageant-tray-v2-sessions.json",
+      "terminalCommand": "",
+      "showNotifications": true
+    }
   }
 }
