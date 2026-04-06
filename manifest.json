@@ -1,0 +1,19 @@
+{
+  "id": "ssh-agent",
+  "name": "SSH Agent",
+  "version": "0.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "martasskv5",
+  "license": "MIT",
+  "repository": "https://github.com/martasskv5/noctalia-ssh-agent",
+  "description": "A plugin that integrates SSH agent functionality into Noctalia, allowing users to manage their SSH keys and connections directly from the Noctalia interface.",
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {}
+  }
+}
