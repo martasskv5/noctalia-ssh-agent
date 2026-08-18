@@ -1,7 +1,0 @@
-{
-  "socketPath": "/tmp/ssh-agent-martinko.sock",
-  "sessionsFile": "~/.ssh/sessions.json",
-  "terminalCommand": "kitty",
-  "showNotifications": true,
-  "autoStartMode": "Connect Existing"
-}
