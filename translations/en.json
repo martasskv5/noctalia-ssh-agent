@@ -8,6 +8,10 @@
       "label": "Saved Sessions File",
       "description": "JSON file used to store saved SSH sessions"
     },
+    "default_key_browse_path": {
+      "label": "Default Key Browse Path",
+      "description": "Default path used when browsing for SSH keys to add"
+    },
     "terminal_command": {
       "label": "Preferred Terminal",
       "description": "Optional terminal command used to launch SSH sessions (e.g. kitty). Leave empty to use the system default terminal"

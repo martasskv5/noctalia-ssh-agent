@@ -40,6 +40,13 @@ description_key = "settings.sessions_file.description"
 default = "~/.ssh/sessions.json"
 
 [[widget.setting]]
+key = "default_key_browse_path"
+type = "string"
+label_key = "settings.default_key_browse_path.label"
+description_key = "settings.default_key_browse_path.description"
+default = "~/.ssh/"
+
+[[widget.setting]]
 key = "terminal_command"
 type = "string"
 label_key = "settings.terminal_command.label"
@@ -88,6 +95,6 @@ entry = "service.luau"
 id = "panel"
 entry = "panel.luau"
 width = 480
-height = 640
+height = 320
 placement = "floating"
 position = "center"

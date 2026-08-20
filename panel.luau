@@ -115,6 +115,7 @@ local function render()
 					value = addKeyPath,
 					onChange = "onAddKeyPathChange",
 					onSubmit = "onAddKeySubmit",
+                    flexGrow = 1
 				}),
 				ui.button({
 					text = (not addKeyPath or addKeyPath == "") and "Browse…" or "Add Key",
@@ -248,14 +249,31 @@ function onCloseClicked()
 end
 
 local function openFileBrowser(callback)
-	noctalia.runAsync("zenity --file-selection --title='Select SSH Private Key' 2>/dev/null", function(res)
-		local output = (res and res.stdout) or ""
-		if res and res.exitCode == 0 and output ~= "" then
-			callback((output:gsub("%s+$", "")))
-		else
-			callback(nil)
-		end
-	end, 60000)
+    local defaultPath = noctalia.getConfig("default_key_browse_path") or "~/.ssh"
+    local filenameArg = ""
+
+    -- 1. Ensure the path is explicitly recognized as a directory by Zenity using a trailing slash
+    -- 2. Construct the exact shell execution string bypassing Lua's sandboxed environment restrictions
+    if defaultPath:sub(1, 1) == "~" then
+        -- Appends a slash after stripping '~', resulting in: --filename=$HOME"/.ssh/"
+        filenameArg = '--filename=$HOME"' .. defaultPath:sub(2) .. '/"'
+    else
+        -- Forces a trailing slash if it doesn't have one
+        if defaultPath:sub(-1) ~= "/" then
+            defaultPath = defaultPath .. "/"
+        end
+        filenameArg = '--filename="' .. defaultPath .. '"'
+    end
+
+    -- Run Zenity safely with double quotes wrapping the command arguments
+    noctalia.runAsync('zenity --file-selection --title="Select SSH Private Key" ' .. filenameArg .. ' 2>/dev/null', function(res)
+        local output = (res and res.stdout) or ""
+        if res and res.exitCode == 0 and output ~= "" then
+            callback((output:gsub("%s+$", "")))
+        else
+            callback(nil)
+        end
+    end, 60000)
 end
 
 function onAddKeyClicked()
