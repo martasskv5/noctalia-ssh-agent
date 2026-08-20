@@ -25,57 +25,64 @@ description = "Manage your SSH agent, loaded keys, and saved SSH sessions from t
 id = "status"
 entry = "widget.luau"
 
-[[widget.setting]]
+[[setting]]
 key = "socket_path"
 type = "string"
 label_key = "settings.socket_path.label"
 description_key = "settings.socket_path.description"
 default = ""
 
-[[widget.setting]]
+[[setting]]
 key = "sessions_file"
 type = "string"
 label_key = "settings.sessions_file.label"
 description_key = "settings.sessions_file.description"
 default = "~/.ssh/sessions.json"
 
-[[widget.setting]]
+[[setting]]
 key = "default_key_browse_path"
 type = "string"
 label_key = "settings.default_key_browse_path.label"
 description_key = "settings.default_key_browse_path.description"
 default = "~/.ssh/"
 
-[[widget.setting]]
+[[setting]]
 key = "terminal_command"
 type = "string"
 label_key = "settings.terminal_command.label"
 description_key = "settings.terminal_command.description"
 default = ""
 
-[[widget.setting]]
+[[setting]]
+key = "show_saved_sessions"
+type = "bool"
+label_key = "settings.show_saved_sessions.label"
+description_key = "settings.show_saved_sessions.description"
+default = true
+
+[[setting]]
 key = "show_notifications"
 type = "bool"
 label_key = "settings.show_notifications.label"
 description_key = "settings.show_notifications.description"
 default = true
 
-[[widget.setting]]
+[[setting]]
 key = "auto_start_mode"
 type = "select"
 label_key = "settings.auto_start_mode.label"
 description_key = "settings.auto_start_mode.description"
 default = "connect_existing"
 
-[[widget.setting.options]]
+[[setting.options]]
 value = "create_new"
 label_key = "settings.auto_start_mode.options.create_new"
 
-[[widget.setting.options]]
+[[setting.options]]
 value = "connect_existing"
 label_key = "settings.auto_start_mode.options.connect_existing"
 
-[[widget.setting.options]]
+[[setting.options]]
 value = "ask_each_time"
 label_key = "settings.auto_start_mode.options.ask_each_time"
 

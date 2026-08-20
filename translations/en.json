@@ -16,6 +16,10 @@
       "label": "Preferred Terminal",
       "description": "Optional terminal command used to launch SSH sessions (e.g. kitty). Leave empty to use the system default terminal"
     },
+    "show_saved_sessions": {
+      "label": "Show Saved Sessions",
+      "description": "Display saved SSH sessions in the main window"
+    },
     "show_notifications": {
       "label": "Show Notifications",
       "description": "Display success and failure toasts for SSH operations"

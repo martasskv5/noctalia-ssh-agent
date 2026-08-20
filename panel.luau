@@ -59,40 +59,8 @@ local function render()
 		table.insert(keyRows, ui.label({ text = "No keys loaded", color = "on_surface_variant" }))
 	end
 
-	local sessionRows = {}
-	for _, s in ipairs(status.sessions or {}) do
-		table.insert(
-			sessionRows,
-			ui.row({ gap = 8, align = "center" }, {
-				ui.label({ text = s.name or "", fontWeight = "medium", flexGrow = 1 }),
-				ui.label({ text = s.host or "", color = "on_surface_variant" }),
-				ui.button({
-					glyph = "terminal",
-					onClick = function()
-						sendCommand("launch-session", { session = s })
-					end,
-				}),
-				ui.button({
-					glyph = "edit",
-					onClick = function()
-						loadIntoForm(s)
-						render()
-					end,
-				}),
-				ui.button({
-					glyph = "trash",
-					onClick = function()
-						sendCommand("delete-session", { name = s.name })
-					end,
-				}),
-			})
-		)
-	end
-	if #sessionRows == 0 then
-		table.insert(sessionRows, ui.label({ text = "No saved sessions", color = "on_surface_variant" }))
-	end
-
 	local children = {
+		-- Header row
 		ui.row({ align = "center", justify = "space_between", gap = 8 }, {
 			ui.label({ text = "SSH Agent", fontSize = 16, fontWeight = "bold", color = "on_surface", flexGrow = 1 }),
 			ui.label({
@@ -102,6 +70,7 @@ local function render()
 			ui.button({ glyph = "close", onClick = "onCloseClicked" }),
 		}),
 
+		-- Loaded Keys Section
 		ui.column({ gap = 8 }, {
 			ui.row({ align = "center", justify = "space_between", gap = 8 }, {
 				ui.label({ text = "Loaded Keys", fontWeight = "medium", color = "on_surface_variant", flexGrow = 1 }),
@@ -115,25 +84,62 @@ local function render()
 					value = addKeyPath,
 					onChange = "onAddKeyPathChange",
 					onSubmit = "onAddKeySubmit",
-                    flexGrow = 1
+					flexGrow = 1
 				}),
 				ui.button({
 					text = (not addKeyPath or addKeyPath == "") and "Browse…" or "Add Key",
 					onClick = "onAddKeyClicked",
 				}),
-
 			}),
 		}),
+	}
 
-		ui.column({ gap = 8 }, {
+	-- Conditionally evaluate and load Saved Sessions
+	local showSessionsConfig = noctalia.getConfig("show_saved_sessions")
+	if showSessionsConfig == true or showSessionsConfig == "true" then
+		local sessionRows = {}
+		for _, s in ipairs(status.sessions or {}) do
+			table.insert(
+				sessionRows,
+				ui.row({ gap = 8, align = "center" }, {
+					ui.label({ text = s.name or "", fontWeight = "medium", flexGrow = 1 }),
+					ui.label({ text = s.host or "", color = "on_surface_variant" }),
+					ui.button({
+						glyph = "terminal",
+						onClick = function()
+							sendCommand("launch-session", { session = s })
+						end,
+					}),
+					ui.button({
+						glyph = "edit",
+						onClick = function()
+							loadIntoForm(s)
+							render()
+						end,
+					}),
+					ui.button({
+						glyph = "trash",
+						onClick = function()
+							sendCommand("delete-session", { name = s.name })
+						end,
+					}),
+				})
+			)
+		end
+		if #sessionRows == 0 then
+			table.insert(sessionRows, ui.label({ text = "No saved sessions", color = "on_surface_variant" }))
+		end
+
+		table.insert(children, ui.column({ gap = 8 }, {
 			ui.row({ align = "center", justify = "space_between", gap = 8 }, {
 				ui.label({ text = "Saved Sessions", fontWeight = "medium", color = "on_surface_variant", flexGrow = 1 }),
 				ui.button({ text = "New Session", glyph = "plus", onClick = "onNewSessionClicked" }),
 			}),
 			ui.column({ gap = 4 }, sessionRows),
-		}),
-	}
+		}))
+	end
 
+	-- Editor Form Section
 	if editing then
 		table.insert(
 			children,
@@ -162,8 +168,17 @@ local function render()
 		)
 	end
 
-	panel.render(ui.scroll({ flexGrow = 1, gap = 16, align = "stretch" }, children))
+	-- Using a structural column with padding rather than an aggressive scrolling viewport tracker.
+	-- This enables Noctalia's window framework engine to dynamically compress boundaries.
+	panel.render(ui.column({ 
+        gap = 16, 
+        padding = 16, 
+        align = "stretch",
+        -- Force the UI tree node to shrink-wrap tightly around children nodes
+        height = "shrink" 
+    }, children))
 end
+
 
 function onOpen(_context)
 	status = noctalia.state.get("status") or {}
@@ -249,6 +264,7 @@ function onCloseClicked()
 end
 
 local function openFileBrowser(callback)
+    print(noctalia.getConfig("default_key_browse_path"))
     local defaultPath = noctalia.getConfig("default_key_browse_path") or "~/.ssh"
     local filenameArg = ""
 
