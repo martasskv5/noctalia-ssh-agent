@@ -12,7 +12,7 @@ version = "1.0.0"
 plugin_api = 9
 author = "martasskv5"
 license = "MIT"
-dependencies = ["zenity", "ssh-add"]
+dependencies = ["zenity", "ssh-add", "ssh-agent"]
 tags = ["utility", "network"]
 icon = "key"
 description = "Manage your SSH agent, loaded keys, and saved SSH sessions from the bar."
@@ -22,7 +22,7 @@ description = "Manage your SSH agent, loaded keys, and saved SSH sessions from t
 # plugin via noctalia.getConfig(key) — the service and panel read the same
 # values. This replaces v4's Settings.qml + manifest.metadata.defaultSettings.
 [[widget]]
-id = "status"
+id = "ssh-agent-widget"
 entry = "widget.luau"
 
 [[setting]]
@@ -91,7 +91,7 @@ label_key = "settings.auto_start_mode.options.ask_each_time"
 # the whole session, independent of whether the widget/panel are open —
 # this replaces Main.qml + its Process{} blocks.
 [[service]]
-id = "agent"
+id = "ssh-agent-service"
 entry = "service.luau"
 
 # ── Panel ─────────────────────────────────────────────────────────────────
@@ -99,9 +99,9 @@ entry = "service.luau"
 # declared here so the surface is right on first open.
 # Open manually with: noctalia msg panel-toggle martasskv5/ssh-agent:panel
 [[panel]]
-id = "panel"
+id = "ssh-agent-panel"
 entry = "panel.luau"
-width = 480
-height = 320
-placement = "floating"
-position = "center"
+# width = 480
+# height = 340
+placement = "attached"
+position = "near-trigger"

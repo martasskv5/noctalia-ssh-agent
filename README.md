@@ -1,58 +1,82 @@
-# SSH Agent (Noctalia v5)
+# SSH Agent
 
-A v5 (Luau) port of the v4 QML `ssh-agent` plugin.
+Manage your SSH keys and saved sessions directly from the Noctalia bar. This plugin keeps a small SSH agent running in the background, lets you add or remove keys, and provides a panel for quick session management.
 
-## Install (local dev)
+## Plugin
+
+| Field | Value |
+| --- | --- |
+| ID | `martasskv5/ssh-agent` |
+| Entries | Bar widget: `ssh-agent-widget`; panel: `ssh-agent-panel`; service: `ssh-agent-service` |
+
+## Requirements
+
+Install the following on `PATH` for the plugin to work correctly:
+
+- `ssh-agent`
+- `ssh-add`
+- `zenity`
+
+For passphrase prompts, install one of these programs as well:
+
+- `ksshaskpass`
+- `ssh-askpass`
+- `lxqt-openssh-askpass`
+
+The plugin also uses `pkill`, `mkdir`, and the standard SSH agent socket pattern under `/tmp` to manage the agent lifecycle and temporary files.
+
+To make SSH tools available outside the plugin process, set `SSH_AUTH_SOCK` in your shell or desktop environment. For example:
 
 ```sh
-mkdir -p ~/.local/share/noctalia/plugins
-cp -r ssh-agent ~/.local/share/noctalia/plugins/ssh-agent
-noctalia msg plugins list        # confirm it's discovered
-noctalia msg plugins enable martasskv5/ssh-agent
+export SSH_AUTH_SOCK="/tmp/ssh-agent-$USER.sock"
 ```
 
-Then add the bar widget: `[bar.default] end = ["martasskv5/ssh-agent:status", ...]`
-in your `settings.toml`/`config.toml`, or add it from the Add-widget picker
-in Settings.
+For a compositor or window manager configuration, add the same value there as well so applications launched from the desktop environment can find the agent.
 
-## What changed vs. the v4 (QML) version
+### Example Niri config
 
-- **Language**: QML → Luau. Each old file maps to a new one:
-  - `manifest.json` → `plugin.toml` (TOML, new schema)
-  - `Main.qml` → `service.luau` (a headless `[[service]]`)
-  - `BarWidget.qml` → `widget.luau` (a `[[widget]]`)
-  - `Panel.qml` → `panel.luau` (a `[[panel]]`, declarative `ui.*` tree)
-  - `Settings.qml` + `settings.json` → `[[widget.setting]]` entries in
-    `plugin.toml` + `translations/en.json`. Settings are now edited from
-    Settings → Plugins in the host UI; there's no more standalone
-    `settings.json` file to hand-edit, and no more `sshVersion` readout in a
-    settings panel (it's tracked but currently unused outside the service —
-    surface it in the panel if you want it back).
-- **No shared object graph**: v4's `pluginApi.mainInstance` let every QML
-  file reach into one shared instance. v5 entries are isolated Luau VMs;
-  they only communicate via `noctalia.state.set/get/watch` (pub/sub) and
-  `onIpc`. The service publishes a `status` key; the widget and panel watch
-  it and send back a `command` key for actions.
-- **No context menu widget**: v4's `NPopupContextMenu` (Refresh / Start
-  Agent / Plugin Settings on right-click) has no v5 equivalent — there's no
-  menu primitive in `ui.*`. Left-click now opens the panel (which has
-  Refresh/Start/Stop buttons), right-click does a quick refresh, and
-  middle-click opens the plugin's settings by default (host behavior).
-- **No file picker**: v4's `NFilePicker` for choosing a private key file
-  isn't available to plugins in v5. "Add Key" is a path text field instead.
-- **Process execution**: v4's `Process { command: [...] }` QML items became
-  `noctalia.runAsync(cmd, onResult, timeoutMs)`. Terminal launching now
-  prefers the host's `noctalia.runInTerminal()` when no custom terminal
-  command is configured, instead of manually probing for kitty/foot/etc.
-- **IPC target changed**: `noctalia msg plugin:ssh-agent refresh` (v4)
-  becomes `noctalia msg plugin martasskv5/ssh-agent:agent <target> refresh`
-  (v5); `<target>` is `focused`, an output name, or `all`.
+```kdl
+environment {
+    SSH_ASKPASS "/usr/bin/ksshaskpass"
+    SSH_ASKPASS_REQUIRE "prefer"
+    SSH_AUTH_SOCK "/tmp/ssh-agent-<replace with your username>.sock"
+}
+```
 
-## Known simplifications
+### Example Hyprland config
 
-- Sessions are edited inline in the panel rather than in a separate popup.
-- No control-center shortcut or launcher provider were added — the v4
-  plugin didn't have them either, but they'd be easy to bolt on as
-  `[[shortcut]]` / `[[launcher_provider]]` entries if wanted.
+```conf
+env = SSH_ASKPASS,/usr/bin/ksshaskpass
+env = SSH_ASKPASS_REQUIRE,prefer
+env = SSH_AUTH_SOCK,/tmp/ssh-agent-<replace with your username>.sock
+```
 
-Docs: https://docs.noctalia.dev/v5/plugins/development
+## Usage
+
+Add the `SSH Agent` widget under Settings → Bar.
+
+To open the panel manually, run:
+
+```sh
+noctalia msg panel-toggle martasskv5/ssh-agent:ssh-agent-panel
+```
+
+The panel lets you add SSH keys, remove them, and manage saved SSH sessions. If no SSH agent is running yet, the plugin will start one automatically and connect to it using the configured socket.
+
+## Settings
+
+| Setting | Type | Default | Description |
+| --- | --- | --- | --- |
+| `socket_path` | `string` | `""` | The path to the SSH agent socket. Leave empty to use the default per-user agent socket location. |
+| `sessions_file` | `string` | `"~/.ssh/sessions.json"` | The path to the JSON file used to store saved SSH sessions. |
+| `default_key_browse_path` | `string` | `"~/.ssh"` | The default folder shown when browsing for SSH private keys. |
+| `terminal_command` | `string` | `""` | The terminal command used to launch SSH sessions. Leave empty to use the system default terminal. |
+| `show_saved_sessions` | `boolean` | `true` | Whether saved SSH sessions are shown in the panel. |
+| `show_notifications` | `boolean` | `true` | Whether the plugin shows success and failure notifications for SSH operations. |
+| `auto_start_mode` | `string` | `"connect_existing"` | How the plugin decides whether to reuse an existing agent or start a new one. Supported values are `"connect_existing"`, `"ask_each_time"`, and `"create_new"`. |
+
+## Notes
+
+The plugin creates and manages the SSH agent socket and stores saved connection data in a JSON file under the configured `sessions_file` path. It may spawn `ssh-agent`, `ssh-add`, and the configured askpass helper to prompt for passphrases or manage keys, and it writes temporary files in `/tmp` while creating and switching SSH agent sockets.
+
+If your environment does not export `SSH_AUTH_SOCK`, applications outside the plugin may not see the agent even when it is running, so it is often helpful to set it in both the shell and the window manager or compositor config.

@@ -170,13 +170,21 @@ local function render()
 
 	-- Using a structural column with padding rather than an aggressive scrolling viewport tracker.
 	-- This enables Noctalia's window framework engine to dynamically compress boundaries.
-	panel.render(ui.column({ 
-        gap = 16, 
-        padding = 16, 
-        align = "stretch",
-        -- Force the UI tree node to shrink-wrap tightly around children nodes
-        height = "shrink" 
-    }, children))
+	panel.render(ui.scroll({
+		-- Caps the physical view boundary so it doesn't bleed out of the display edge
+		maxHeight = 500,
+		-- Instructs the scroll panel to occupy the full width of the parent panel frame
+		width = "stretch"
+	}, {
+		-- Your main structural layout block nesting inside the view tracker
+		ui.column({ 
+			gap = 16, 
+			padding = 16, 
+			align = "stretch",
+			-- Tightly binds the column height around the generated Luau node tree array
+			height = "shrink" 
+		}, children)
+	}))
 end
 
 

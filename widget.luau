@@ -9,7 +9,7 @@
 --   right click  -> quick refresh
 --   middle click -> opens this plugin's settings (built-in host default)
 
-local PLUGIN_PANEL = "martasskv5/ssh-agent:panel"
+local PLUGIN_PANEL = "martasskv5/ssh-agent:ssh-agent-panel"
 
 local agentRunning = false
 local loadedKeys = {}
